@@ -1,7 +1,7 @@
 import shiny
 from shiny import App, render, ui, reactive
 import pandas as pd
-import plotly.express as px
+import matplotlib.pyplot as plt
 import requests
 import json
 import csv
@@ -125,14 +125,22 @@ def server(input, output, session):
             return None
 
         var = input.variable()
-        if pd.api.types.is_numeric_dtype(df[var]):
-            fig = px.histogram(df, x=var, title=f"Histogram of {var}")
-        else:
-            df_count = df[var].value_counts().nlargest(10).reset_index()
-            df_count.columns = [var, 'count']
-            fig = px.bar(df_count, x=var, y='count', title="Column Chart")
-            fig.update_layout(xaxis_title=None, yaxis_title=None)
+        fig, ax = plt.subplots()
 
+        if pd.api.types.is_numeric_dtype(df[var]):
+            ax.hist(df[var], bins=20, edgecolor='black')
+            ax.set_title(f"Histogram of {var}")
+            ax.set_xlabel(var)
+            ax.set_ylabel("Frequency")
+        else:
+            value_counts = df[var].value_counts().nlargest(10)
+            value_counts.plot(kind='bar', ax=ax)
+            ax.set_title(f"Top 10 categories in {var}")
+            ax.set_xlabel(var)
+            ax.set_ylabel("Count")
+            plt.xticks(rotation=45, ha='right')
+
+        plt.tight_layout()
         return fig
 
     @output
