@@ -23,7 +23,7 @@ app_ui = ui.page_fluid(
             ui.output_ui("summary")
         ),
         ui.navset_tab(
-            ui.nav_panel("Data Table", ui.output_data_frame("dataset")),
+            ui.nav_panel("Data Table", ui.output_data_frame("dataset_table")),
             ui.nav_panel("Visualizations",
                 ui.input_select("variable", "Select Variable", choices=[]),
                 ui.output_plot("plot")
@@ -112,9 +112,10 @@ def server(input, output, session):
 
     @output
     @render.data_frame
-    def dataset():
-        if dataset.get() is not None:
-            return render.DataGrid(dataset.get())
+    def dataset_table():
+        df = dataset.get()
+        if df is not None:
+            return render.DataGrid(df)
 
     @output
     @render.plot
@@ -146,7 +147,8 @@ def server(input, output, session):
 
     @session.download(filename="generated_dataset.csv")
     def download():
-        if dataset.get() is not None:
-            return dataset.get().to_csv(index=False)
+        df = dataset.get()
+        if df is not None:
+            return df.to_csv(index=False)
 
 app = App(app_ui, server)
