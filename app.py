@@ -19,13 +19,14 @@ app_ui = ui.page_fluid(
             ui.input_text("description", "Describe the dataset you want", 
                           placeholder="e.g., health data for a family of 4"),
             ui.input_action_button("generate", "Generate Dataset"),
-            ui.download_button("download", "Download CSV"),
             ui.output_ui("summary"),
             open="open",
             width = 350
         ),
         ui.navset_tab(
-            ui.nav_panel("Data Table", ui.output_data_frame("dataset_table")),
+            ui.nav_panel("Data Table",
+                         ui.output_data_frame("dataset_table"),
+                         ui.download_button("download", "Download CSV", disabled = True)),
             # ui.nav_panel("Visualizations",
             #     ui.input_select("variable", "Select Variable", choices=[]),
             #     ui.output_plot("plot")
