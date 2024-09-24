@@ -4,7 +4,6 @@ import pandas as pd
 import requests
 import io
 import os
-# from typing import List
 
 # replace with your actual API key
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
@@ -18,6 +17,7 @@ app_ui = ui.page_fluid(
             ui.input_action_button("generate", "Generate Dataset"),
             ui.output_ui("download_button_ui"),  # Placeholder for conditional download button
             ui.output_ui("summary"),
+            ui.output_ui("spinner_ui"),  # Spinner output
             open="open",
             width=350
         ),
@@ -32,6 +32,7 @@ app_ui = ui.page_fluid(
 def server(input, output, session):
     dataset = reactive.Value(None)
     summary_text = reactive.Value("")
+    spinner_visible = reactive.Value(False)  # Spinner control
 
     def preprocess_csv(csv_string: str) -> pd.DataFrame:
         csv_io = io.StringIO(csv_string)
@@ -74,8 +75,11 @@ def server(input, output, session):
         description = input.description()
         if not description:
             return
+        
+        # Show the spinner
+        spinner_visible.set(True)
 
-        prompt = f"Generate a fake dataset as a CSV string based on this description: {description}. Include a header row. Limit to 25 rows of data. Ensure all rows have the same number of columns. Do not include any additional text or explanations."
+        prompt = f"Generate a fake dataset with at least two variables as a CSV string based on this description: {description}. Include a header row. Limit to 25 rows of data. Ensure all rows have the same number of columns. Do not include any additional text or explanations."
 
         response = requests.post(
             "https://api.openai.com/v1/chat/completions",
@@ -106,6 +110,9 @@ def server(input, output, session):
         else:
             ui.notification_show("Error generating dataset. Please try again later.", type="error")
 
+        # Hide the spinner after completion
+        spinner_visible.set(False)
+
     @output
     @render.data_frame
     def dataset_table():
@@ -135,5 +142,16 @@ def server(input, output, session):
         df = dataset.get()
         if df is not None:
             return df.to_csv(index=False)
+
+    # Spinner UI
+    @output
+    @render.ui
+    def spinner_ui():
+        if spinner_visible.get():
+            return ui.div(
+                ui.img(src="https://i.gifer.com/ZZ5H.gif", height="50px"),
+                {"style": "text-align: center;"}
+            )
+        return ui.div()
 
 app = App(app_ui, server)
