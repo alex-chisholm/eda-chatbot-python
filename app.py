@@ -1,36 +1,30 @@
 import shiny
 from shiny import App, render, ui, reactive
 import pandas as pd
-# import matplotlib.pyplot as plt
 import requests
-import json
-import csv
 import io
 import os
-from typing import List
+# from typing import List
 
-# Internal API key (replace with your actual API key)
+# replace with your actual API key
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 app_ui = ui.page_fluid(
-    ui.panel_title("Fake Dataset Generator"),
+    ui.panel_title("Dataset Generator"),
     ui.layout_sidebar(
         ui.sidebar(
             ui.input_text("description", "Describe the dataset you want", 
                           placeholder="e.g., health data for a family of 4"),
             ui.input_action_button("generate", "Generate Dataset"),
+            ui.output_ui("download_button_ui"),  # Placeholder for conditional download button
             ui.output_ui("summary"),
             open="open",
-            width = 350
+            width=350
         ),
         ui.navset_tab(
             ui.nav_panel("Data Table",
                          ui.output_data_frame("dataset_table"),
-                         ui.download_button("download", "Download CSV", disabled = True)),
-            # ui.nav_panel("Visualizations",
-            #     ui.input_select("variable", "Select Variable", choices=[]),
-            #     ui.output_plot("plot")
-            # )
+                         )
         )
     )
 )
@@ -81,7 +75,7 @@ def server(input, output, session):
         if not description:
             return
 
-        prompt = f"Generate a fake dataset as a CSV string based on this description: {description} Include a header row. Limit to 25 rows of data. Ensure all rows have the same number of columns. Do not include any additional text or explanations."
+        prompt = f"Generate a fake dataset as a CSV string based on this description: {description}. Include a header row. Limit to 25 rows of data. Ensure all rows have the same number of columns. Do not include any additional text or explanations."
 
         response = requests.post(
             "https://api.openai.com/v1/chat/completions",
@@ -102,7 +96,6 @@ def server(input, output, session):
             try:
                 df = preprocess_csv(csv_string)
                 dataset.set(df)
-                ui.update_select("variable", choices=df.columns.tolist())
 
                 # Generate and set summary
                 summary = generate_summary(df)
@@ -120,32 +113,6 @@ def server(input, output, session):
         if df is not None:
             return render.DataGrid(df)
 
-    # @output
-    # @render.plot
-    # def plot():
-    #     df = dataset.get()
-    #     if df is None or input.variable() is None:
-    #         return None
-
-    #     var = input.variable()
-    #     fig, ax = plt.subplots()
-
-    #     if pd.api.types.is_numeric_dtype(df[var]):
-    #         ax.hist(df[var], bins=20, edgecolor='black')
-    #         ax.set_title(f"Histogram of {var}")
-    #         ax.set_xlabel(var)
-    #         ax.set_ylabel("Frequency")
-    #     else:
-    #         value_counts = df[var].value_counts().nlargest(10)
-    #         value_counts.plot(kind='bar', ax=ax)
-    #         ax.set_title(f"Top 10 categories in {var}")
-    #         ax.set_xlabel(var)
-    #         ax.set_ylabel("Count")
-    #         plt.xticks(rotation=45, ha='right')
-
-    #     plt.tight_layout()
-    #     return fig
-
     @output
     @render.ui
     def summary():
@@ -155,6 +122,13 @@ def server(input, output, session):
                 ui.p(summary_text.get()),
                 {"style": "background-color: #f0f0f0; padding: 10px; border-radius: 5px;"}
             )
+
+    @output
+    @render.ui
+    def download_button_ui():
+        df = dataset.get()
+        if df is not None:
+            return ui.download_button("download", "Download CSV")
 
     @session.download(filename="generated_dataset.csv")
     def download():
